@@ -1,0 +1,28 @@
+# Ignore Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Ignore Terraform crash logs
+crash.log
+
+# Ignore Terraform provider files
+.terraform/
+.terraform.lock.hcl
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore other unwanted files
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+
+# Ignore npm debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
