@@ -12,11 +12,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
+
+      - name: Debug SSH Key
+        run: |
+          echo "$SSH_PRIVATE_KEY"
+          echo "$SSH_PRIVATE_KEY" | base64 -d | tee ~/.ssh/id_rsa
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Set up SSH keys
         run: |
           mkdir -p ~/.ssh
@@ -26,7 +33,7 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          
+
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/id_rsa ec2-user@ec2-52-14-237-205.us-east-2.compute.amazonaws.com "mkdir -p /var/www/html"
