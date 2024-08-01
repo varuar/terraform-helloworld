@@ -20,6 +20,16 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ec2-3-142-131-173.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts
 
+      - name: Run setup script on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-3-142-131-173.us-east-2.compute.amazonaws.com << 'EOF'
+            sudo yum update -y
+            sudo yum install -y httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            sudo chown ec2-user:ec2-user /var/www/html
+          EOF
+
       - name: Copy files to EC2
         run: |
           scp -i ~/.ssh/id_rsa hello.html ec2-user@ec2-3-142-131-173.us-east-2.compute.amazonaws.com:/var/www/html
