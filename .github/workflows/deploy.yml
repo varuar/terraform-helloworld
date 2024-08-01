@@ -1,0 +1,29 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ec2-3-142-131-173.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts
+
+      - name: Copy files to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@ec2-3-142-131-173.us-east-2.compute.amazonaws.com:/var/www/html
+
+      - name: Restart Apache
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-3-142-131-173.us-east-2.compute.amazonaws.com 'sudo systemctl restart httpd'
