@@ -28,9 +28,7 @@ jobs:
           echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
       - name: Display IP Address
-        run: echo "EC2 Public IP Address: $INSTANCE_IP"
-        env:
-          INSTANCE_IP: ${{ env.INSTANCE_IP }}
+        run: echo "EC2 Public IP Address: ${{ env.INSTANCE_IP }}"
 
       - name: Set up SSH
         run: |
