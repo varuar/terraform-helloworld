@@ -23,13 +23,12 @@ jobs:
 
       - name: Terraform Apply
         id: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           terraform apply -auto-approve
           echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      - name: Display IP Address
+        run: echo "EC2 Public IP Address: ${{ env.INSTANCE_IP }}"
 
       - name: Set up SSH
         run: |
@@ -40,7 +39,7 @@ jobs:
 
       - name: Run setup script on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -50,8 +49,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.INSTANCE_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.INSTANCE_IP }}:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo systemctl restart httpd'
