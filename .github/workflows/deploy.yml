@@ -13,38 +13,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up AWS CLI
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          terraform_version: 1.8.5
 
-      - name: Get EC2 Instance Public IP
-        id: get_ip
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        id: terraform
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=MyAppInstance" \
-            --query "Reservations[*].Instances[*].InstanceId" \
-            --output text)
-          
-          PUBLIC_IP=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text)
-          
-          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+          terraform apply -auto-approve
+          echo "INSTANCE_IP=$(terraform output -raw instance_ip)" >> $GITHUB_ENV
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.PUBLIC_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ env.INSTANCE_IP }} >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.PUBLIC_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -54,8 +46,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.PUBLIC_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.INSTANCE_IP }}:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.PUBLIC_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo systemctl restart httpd'
