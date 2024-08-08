@@ -27,8 +27,12 @@ jobs:
 
       - name: Copy files to EC2
         run: |
+          echo "Copying files to EC2"
           scp -i ~/.ssh/id_rsa hello.html ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com:/var/www/html
+          echo "Files copied"
 
       - name: Restart Apache
         run: |
+          echo "Restarting Apache"
           ssh -i ~/.ssh/id_rsa ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com 'sudo systemctl restart httpd'
+          echo "Apache restarted"
