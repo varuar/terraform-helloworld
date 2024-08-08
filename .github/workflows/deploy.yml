@@ -9,6 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    outputs:
+      INSTANCE_IP: ${{ steps.apply.outputs.INSTANCE_IP }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -25,8 +28,7 @@ jobs:
         id: apply
         run: |
           terraform apply -auto-approve
-        outputs:
-          INSTANCE_IP: $(terraform output -raw public_ip)
+          echo "::set-output name=INSTANCE_IP::$(terraform output -raw public_ip)"
 
       - name: Set up SSH
         run: |
