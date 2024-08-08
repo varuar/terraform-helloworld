@@ -32,7 +32,8 @@ jobs:
         id: apply
         run: |
           terraform apply -auto-approve
-          echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          INSTANCE_IP=$(terraform output -raw public_ip)
+          echo "INSTANCE_IP=${INSTANCE_IP}" >> $GITHUB_ENV
 
       - name: Set up SSH
         run: |
