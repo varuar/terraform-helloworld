@@ -9,19 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    outputs:
-      INSTANCE_IP: ${{ steps.apply.outputs.INSTANCE_IP }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
@@ -31,22 +21,23 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply and Capture IP
+      - name: Terraform Apply
         id: apply
-        run: |
-          terraform apply -auto-approve
-          echo "::set-output name=INSTANCE_IP::$(terraform output -raw public_ip)"
+        run: terraform apply -auto-approve
+
+      - name: Get EC2 Instance IP
+        run: echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ steps.apply.outputs.INSTANCE_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.apply.outputs.INSTANCE_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@$INSTANCE_IP << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -56,8 +47,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ steps.apply.outputs.INSTANCE_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@$INSTANCE_IP:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.apply.outputs.INSTANCE_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@$INSTANCE_IP 'sudo systemctl restart httpd'
