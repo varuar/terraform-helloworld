@@ -1,0 +1,39 @@
+name: Edit EC2 Instance
+
+on:
+  push:
+    branches:
+      - master  # Or the branch you want to trigger on
+    paths:
+      - 'src/*'
+      - '.github/workflows/edit-instance.yml'
+
+jobs:
+  edit-instance:
+    runs-on: ubuntu-latest
+    env:
+      PRIVATE_KEY_BASE64: ${{ secrets.PRIVATE_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}  # Add this to your GitHub secrets
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Decode private key
+        run: |
+          echo ${{ env.PRIVATE_KEY_BASE64 }} | base64 --decode > terraform-key-pairs.pem
+          chmod 600 terraform-key-pairs.pem
+
+      - name: SSH into EC2 Instance and update folder
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_PUBLIC_IP }}
+          username: ec2-user
+          key: ${{ env.PRIVATE_KEY }}
+          script: |
+            cd /path/to/your/directory  # Adjust this path as needed
+            git pull origin master  # Or the relevant branch
+        env:
+          DEBUG: true
