@@ -32,18 +32,19 @@ jobs:
         id: apply
         run: |
           terraform apply -auto-approve
-          echo "::set-output name=INSTANCE_IP::$(terraform output -raw public_ip)"
+          echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          echo "INSTANCE_IP=${{ env.INSTANCE_IP }}"
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ steps.apply.outputs.INSTANCE_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ env.INSTANCE_IP }} >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.apply.outputs.INSTANCE_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -53,8 +54,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ steps.apply.outputs.INSTANCE_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.INSTANCE_IP }}:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.apply.outputs.INSTANCE_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo systemctl restart httpd'
