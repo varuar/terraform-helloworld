@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: List home directory
+        run: |
+          echo "Listing home directory before creating .ssh"
+          ls -la ~/
+
       - name: Set up SSH
         run: |
           echo "Setting up SSH"
@@ -21,6 +26,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ec2-18-117-70-110.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts
           echo "SSH setup complete"
+          ls -la ~/.ssh
 
       - name: Install dependencies
         run: npm install
