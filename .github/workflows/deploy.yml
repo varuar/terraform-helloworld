@@ -12,6 +12,7 @@ jobs:
       PRIVATE_KEY_BASE64: ${{ secrets.PRIVATE_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -20,7 +21,12 @@ jobs:
         run: npm install
 
       - name: Build project
-        run: npm run build # Only if `build` is relevant
+        run: npm run build # Only if `build` is relevant for your project
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.x' # Adjust this to your required Node.js version
 
       - name: Terraform Init
         run: |
@@ -31,3 +37,28 @@ jobs:
         run: |
           cd terraform/creation
           terraform apply -auto-approve -var="private_key_base64=${{ env.PRIVATE_KEY_BASE64 }}" -var="aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" -var="aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts
+
+      - name: Run setup script on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+            sudo yum update -y
+            sudo yum install -y httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            sudo chown ec2-user:ec2-user /var/www/html
+          EOF
+
+      - name: Copy files to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/var/www/html
+
+      - name: Restart Apache
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_PUBLIC_IP }} 'sudo systemctl restart httpd'
