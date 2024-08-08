@@ -28,12 +28,11 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply and Capture IP
+      - name: Terraform Apply
         id: apply
         run: |
           terraform apply -auto-approve
-          INSTANCE_IP=$(terraform output -raw public_ip)
-          echo "INSTANCE_IP=${INSTANCE_IP}" >> $GITHUB_ENV
+          echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
       - name: Set up SSH
         run: |
