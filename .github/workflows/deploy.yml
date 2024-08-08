@@ -8,43 +8,54 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      PRIVATE_KEY_BASE64: ${{ secrets.SSH_PRIVATE_KEY_BASE64 }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          node-version: '21.6.1'
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.8.5
+      - name: Install dependencies
+        run: npm install 
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Decode private key
+        run: |
+          echo ${{ env.PRIVATE_KEY_BASE64 }} | base64 --decode > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
       - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply and Capture IP
-        id: apply
         run: |
-          terraform apply -auto-approve
-          echo "INSTANCE_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
-          echo "INSTANCE_IP=${{ env.INSTANCE_IP }}"
+          cd terraform/creation
+          terraform init -var="aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" -var="aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
+
+      - name: Terraform Apply
+        run: |
+          cd terraform/creation
+          terraform apply -auto-approve -var="aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" -var="aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
+
+      - name: Get EC2 Public IP
+        id: get_ip
+        run: |
+          echo "::set-output name=public_ip::$(terraform output -raw public_ip)"
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.INSTANCE_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ steps.get_ip.outputs.public_ip }} >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.get_ip.outputs.public_ip }} << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -54,8 +65,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.INSTANCE_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ steps.get_ip.outputs.public_ip }}:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ steps.get_ip.outputs.public_ip }} 'sudo systemctl restart httpd'
