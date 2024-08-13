@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from '/Users/2018v/OneDrive/Desktop/sreyo/automationproject/src/index.js'; 
+import App from './App'; // Use relative path to App.js
 
 ReactDOM.render(
   <React.StrictMode>
