@@ -8,6 +8,7 @@ on:
       - .github/workflows/deploy.yml
       - terraform/terraform-helloworld.tf
       - src/*
+      - index.html
 
 jobs:
   deploy:
@@ -60,7 +61,7 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com:/var/www/html
+          scp -i ~/.ssh/id_rsa build/* ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com:/var/www/html
 
       - name: Restart Apache
         run: |
