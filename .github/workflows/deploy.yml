@@ -1,4 +1,4 @@
-name: Automated Deploy to EC2
+name: Deploy and Update EC2
 
 on:
   push:
@@ -6,54 +6,51 @@ on:
       - master
     paths:
       - .github/workflows/deploy.yml
-      - terraform/creation/terraform-helloworld.tf
+      - terraform/terraform-helloworld.tf
+      - src/*
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      PRIVATE_KEY_BASE64: ${{ secrets.PRIVATE_KEY }}
+      PRIVATE_KEY_BASE64: ${{ secrets.SSH_PRIVATE_KEY_BASE64 }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install Node.js dependencies
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '21.6.1'
-      - run: npm install 
 
       - name: Build React app
         run: npm run build
 
       - name: Terraform Init
         run: |
-          cd terraform/creation
+          cd terraform
           terraform init -var="private_key_base64=${{ env.PRIVATE_KEY_BASE64 }}" -var="aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" -var="aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
 
-      - name: Terraform Apply to Manage EC2
+      - name: Terraform Apply
         run: |
-          cd terraform/creation
+          cd terraform
           terraform apply -auto-approve -var="private_key_base64=${{ env.PRIVATE_KEY_BASE64 }}" -var="aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" -var="aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}"
-
-      - name: Extract EC2 Details
-        id: ec2-details
-        run: |
-          PUBLIC_IP=$(terraform output -raw public_ip)
-          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.PUBLIC_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ec2-18-117-70-110.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.PUBLIC_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -63,8 +60,25 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa hello.html ec2-user@${{ env.PUBLIC_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa hello.html ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.PUBLIC_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com 'sudo systemctl restart httpd'
+
+      - name: Decode private key for SSH Action
+        run: |
+          echo ${{ secrets.SSH_PRIVATE_KEY2 }} | base64 --decode > terraform-key-pairs.pem
+          chmod 600 terraform-key-pairs.pem
+
+      - name: SSH into EC2 Instance and update folder
+        uses: appleboy/ssh-action@master
+        with:
+          host: 34.235.167.220
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY2 }}
+          script: |
+            cd /path/to/your/project
+            git pull origin master
+        env:
+          DEBUG: true
