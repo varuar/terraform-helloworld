@@ -54,7 +54,7 @@ jobs:
           cat ec2_ip.txt
 
       - name: Wait for EC2 instance to be ready
-        run: sleep 120
+        run: sleep 180  # Increased wait time to ensure the instance is ready
 
       - name: Set up SSH
         run: |
@@ -63,6 +63,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           IP=$(cat ec2_ip.txt)
           ssh-keyscan -H $IP >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          IP=$(cat ec2_ip.txt)
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$IP echo "SSH connection established"
 
       - name: Run setup script on EC2
         run: |
