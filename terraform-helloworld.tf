@@ -10,7 +10,7 @@ resource "aws_instance" "example" {
   vpc_security_group_ids = [aws_security_group.instance_sg.id]
 
   # Optional: specify the key name for SSH access
-  key_name = "your-key-pair-name"
+  key_name = "ec2keypair"
 
   tags = {
     Name = "HelloWorldInstance"
