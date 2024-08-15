@@ -48,15 +48,17 @@ jobs:
           echo "EC2 IP Address:"
           cat ec2_ip.txt
 
-      - name: Check if IP file exists
+      - name: Check if IP file exists and is not empty
         run: |
-          if [ ! -f ec2_ip.txt ]; then
-            echo "File ec2_ip.txt not found!"
+          if [ ! -f ec2_ip.txt ] || [ ! -s ec2_ip.txt ]; then
+            echo "File ec2_ip.txt not found or is empty!"
             exit 1
           fi
+          echo "IP file contains:"
+          cat ec2_ip.txt
 
       - name: Wait for EC2 instance to be ready
-        run: sleep 60  # Increased wait time to ensure the instance is ready
+        run: sleep 240  # Increased wait time to ensure the instance is ready
 
       - name: Set up SSH
         run: |
