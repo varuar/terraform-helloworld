@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './app'; // Use relative path to App.js
+import App from './App'; // Use relative path to App.js
 
 ReactDOM.render(
   <React.StrictMode>
