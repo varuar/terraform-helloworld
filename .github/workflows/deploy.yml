@@ -42,13 +42,10 @@ jobs:
       - name: Apply Terraform configuration
         run: terraform apply -auto-approve
 
-      - name: List directory contents
-        run: ls -l
-
-      - name: Get EC2 Instance IP
-        id: get-instance-ip
+      - name: Debug EC2 IP
         run: |
           terraform output -raw public_ip > ec2_ip.txt
+          echo "EC2 IP Address:"
           cat ec2_ip.txt
 
       - name: Check if IP file exists
@@ -58,13 +55,8 @@ jobs:
             exit 1
           fi
 
-      - name: Debug EC2 IP
-        run: |
-          echo "EC2 IP Address:"
-          cat ec2_ip.txt
-
       - name: Wait for EC2 instance to be ready
-        run: sleep 180  # Increased wait time to ensure the instance is ready
+        run: sleep 240  # Increased wait time to ensure the instance is ready
 
       - name: Set up SSH
         run: |
@@ -72,6 +64,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           IP=$(cat ec2_ip.txt)
+          if [ -z "$IP" ]; then
+            echo "No IP address found!"
+            exit 1
+          fi
           ssh-keyscan -H $IP >> ~/.ssh/known_hosts
 
       - name: Test SSH Connection
