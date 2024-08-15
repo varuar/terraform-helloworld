@@ -1,0 +1,53 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: List files for debugging
+        run: ls -R
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20.15.0'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ec2-18-117-70-110.us-east-2.compute.amazonaws.com >> ~/.ssh/known_hosts
+
+      - name: Run setup script on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com << 'EOF'
+            sudo yum update -y
+            sudo yum install -y httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            sudo chown ec2-user:ec2-user /var/www/html
+          EOF
+
+      - name: Copy files to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa -r build/* ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com:/var/www/html
+
+      - name: Restart Apache
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-18-117-70-110.us-east-2.compute.amazonaws.com 'sudo systemctl restart httpd'
