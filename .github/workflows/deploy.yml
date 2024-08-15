@@ -49,17 +49,20 @@ jobs:
           cat ec2_ip.txt
 
       - name: Debug EC2 IP
-        run: cat ec2_ip.txt
+        run: |
+          echo "EC2 IP Address:"
+          cat ec2_ip.txt
 
       - name: Wait for EC2 instance to be ready
-        run: sleep 60
+        run: sleep 120
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $(cat ec2_ip.txt) >> ~/.ssh/known_hosts
+          IP=$(cat ec2_ip.txt)
+          ssh-keyscan -H $IP >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
