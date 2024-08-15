@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: Wait for EC2 instance to be ready
-        run: sleep 240  # Increased wait time to ensure the instance is ready
+        run: sleep 60  # Increased wait time to ensure the instance is ready
 
       - name: Set up SSH
         run: |
