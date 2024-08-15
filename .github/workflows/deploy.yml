@@ -24,20 +24,29 @@ jobs:
       - name: Build React app
         run: npm run build
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $(terraform output -raw public_ip) >> ~/.ssh/known_hosts
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.0
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Apply Terraform configuration
+        run: terraform apply -auto-approve
 
       - name: Get EC2 Instance IP
         id: get-instance-ip
         run: |
           terraform output -raw public_ip > ec2_ip.txt
           cat ec2_ip.txt
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $(cat ec2_ip.txt) >> ~/.ssh/known_hosts
 
       - name: Run setup script on EC2
         run: |
