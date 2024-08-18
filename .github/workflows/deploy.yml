@@ -48,15 +48,15 @@ jobs:
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       - name: Debug EC2 IP
-        run: echo "EC2 IP Address: ${{ env.EC2_IP }}"
+        run: echo "EC2 IP Address: $EC2_IP"
 
       - name: Check if IP file exists and is not empty
         run: |
-          if [ -z "${{ env.EC2_IP }}" ]; then
+          if [ -z "$EC2_IP" ]; then
             echo "EC2_IP environment variable is not set or is empty!"
             exit 1
           fi
-          echo "IP file contains: ${{ env.EC2_IP }}"
+          echo "IP file contains: $EC2_IP"
 
       - name: Wait for EC2 instance to be ready
         run: sleep 240  # Increased wait time to ensure the instance is ready
@@ -66,15 +66,15 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.EC2_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
 
       - name: Test SSH Connection
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ env.EC2_IP }} echo "SSH connection established"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$EC2_IP echo "SSH connection established"
 
       - name: Run setup script on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.EC2_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@$EC2_IP << 'EOF'
             sudo yum update -y
             sudo yum install -y httpd
             sudo systemctl start httpd
@@ -84,8 +84,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa -r build/* ec2-user@${{ env.EC2_IP }}:/var/www/html
+          scp -i ~/.ssh/id_rsa -r build/* ec2-user@$EC2_IP:/var/www/html
 
       - name: Restart Apache
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ env.EC2_IP }} 'sudo systemctl restart httpd'
+          ssh -i ~/.ssh/id_rsa ec2-user@$EC2_IP 'sudo systemctl restart httpd'
