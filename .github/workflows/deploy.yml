@@ -46,11 +46,8 @@ jobs:
         id: set-ip
         run: echo "EC2_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
-      - name: Debug EC2 IP
-        run: echo "EC2 IP Address: ${{ env.EC2_IP }}"
-
-      - name: Show Terraform Outputs
-        run: terraform output
+      - name: Show EC2 IP Address
+        run: echo "EC2_IP=${{ env.EC2_IP }}"
 
       - name: Wait for EC2 instance to be ready
         run: |
