@@ -50,14 +50,6 @@ jobs:
       - name: Debug EC2 IP
         run: echo "EC2 IP Address: ${{ env.EC2_IP }}"
 
-      - name: Check if IP file exists and is not empty
-        run: |
-          if [ -z "${{ env.EC2_IP }}" ]; then
-            echo "EC2_IP environment variable is not set or is empty!"
-            exit 1
-          fi
-          echo "IP file contains: ${{ env.EC2_IP }}"
-
       - name: Wait for EC2 instance to be ready
         run: sleep 240  # Increased wait time to ensure the instance is ready
 
