@@ -42,12 +42,24 @@ jobs:
       - name: Apply Terraform configuration
         run: terraform apply -auto-approve
 
-      - name: Get EC2 Public IP
-        id: ec2_ip
-        run: echo "EC2_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+      - name: Set EC2 IP Address Environment Variable
+        run: |
+          IP=$(terraform output -raw public_ip)
+          echo "EC2_IP=$IP" >> $GITHUB_ENV
+
+      - name: Debug EC2 IP
+        run: echo "EC2 IP Address: ${{ env.EC2_IP }}"
+
+      - name: Check if IP file exists and is not empty
+        run: |
+          if [ -z "${{ env.EC2_IP }}" ]; then
+            echo "EC2_IP environment variable is not set or is empty!"
+            exit 1
+          fi
+          echo "IP file contains: ${{ env.EC2_IP }}"
 
       - name: Wait for EC2 instance to be ready
-        run: sleep 120  # Wait 4 minutes to ensure the instance is ready
+        run: sleep 240  # Increased wait time to ensure the instance is ready
 
       - name: Set up SSH
         run: |
