@@ -9,7 +9,6 @@ function App() {
       </header>
       <main className="main-content">
         <p>Your EC2 has launched :D</p>
-        <button className="cta-button">Learn More</button>
       </main>
       <footer className="footer">
         <p>&copy; SREYO 2024</p>
