@@ -8,10 +8,9 @@ function App() {
         <h1>Welcome to my Terraform Project</h1>
       </header>
       <main className="main-content">
-        <p>Your EC2 has launched :D</p>
       </main>
       <footer className="footer">
-        <p>&copy; SREYO 2024</p>
+        <p>Alvin Varughese</p>
       </footer>
     </div>
   );
